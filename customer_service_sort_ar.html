@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L2 Last Game</title>
+<style>
+  :root{
+    --bg: #0a0d12;
+    --panel: #10141b;
+    --panel-2: #141922;
+    --border: #232a35;
+    --border-dashed: #2c3542;
+    --text: #eef1f5;
+    --muted: #8b97a8;
+    --accent: #4fd1c5;
+    --accent-dim: #2f8f86;
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --hint-bg: #17222b;
+    --hint-border: #26445a;
+    --hint-text: #6fc3e8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: radial-gradient(1200px 600px at 20% -10%, #0f1720 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Tajawal", "Segoe UI", -apple-system, sans-serif;
+    padding: 28px 16px 60px;
+    min-height: 100vh;
+  }
+  .wrap{
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1{
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 18px;
+    letter-spacing: 0.2px;
+  }
+  .board{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+  }
+  .hint{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    background: var(--hint-bg);
+    border: 1px solid var(--hint-border);
+    color: var(--hint-text);
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+  .hint b{
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 1px;
+    border-inline-end: 1px solid var(--hint-border);
+    padding-inline-end: 10px;
+    font-weight: 800;
+  }
+  .section-label{
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  #pool{
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 70px;
+    margin-bottom: 26px;
+  }
+  .item{
+    background: #1a2029;
+    border: 1px solid #2b3341;
+    color: var(--text);
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    cursor: grab;
+    user-select: none;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, opacity .15s ease;
+    flex: 1 1 auto;
+    min-width: 220px;
+    text-align: right;
+    line-height: 1.5;
+  }
+  .item:hover{
+    border-color: var(--accent-dim);
+    transform: translateY(-1px);
+  }
+  .item.selected{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(79,209,197,0.25);
+  }
+  .item.dragging{
+    opacity: .35;
+  }
+  .item.placed{
+    display:none;
+  }
+  .zones{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width:640px){
+    .zones{ grid-template-columns: 1fr; }
+  }
+  .zone{
+    border: 1.5px dashed var(--border-dashed);
+    border-radius: 14px;
+    padding: 16px;
+    min-height: 190px;
+    background: rgba(255,255,255,0.015);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .zone.dragover{
+    border-color: var(--accent);
+    background: rgba(79,209,197,0.06);
+  }
+  .zone h3{
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: .3px;
+    margin: 0 0 12px;
+    font-weight: 800;
+    line-height: 1.5;
+  }
+  .zone .dropped-item{
+    background: #17202b;
+    border: 1px solid #2b3341;
+    padding: 12px 14px;
+    border-radius: 9px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    cursor: grab;
+    line-height: 1.5;
+  }
+  .zone-empty-msg{
+    color: #4a5568;
+    font-size: 13px;
+    text-align:center;
+    padding-top: 20px;
+  }
+  .actions{
+    display:flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  button{
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 12px 26px;
+    cursor: pointer;
+    border: none;
+    transition: transform .1s ease, opacity .15s ease;
+  }
+  button:active{ transform: scale(0.97); }
+  #submitBtn{
+    background: var(--accent);
+    color: #06201d;
+  }
+  #submitBtn:disabled{
+    opacity: .4;
+    cursor: not-allowed;
+  }
+  #resetBtn{
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .result-banner{
+    margin-top: 22px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    display:none;
+  }
+  .result-banner.pass{
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .result-banner.fail{
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.3);
+  }
+  .review{
+    margin-top: 22px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    display: none;
+  }
+  .review h2{
+    font-size: 17px;
+    margin: 0 0 16px;
+  }
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  th{
+    text-align: right;
+    color: var(--muted);
+    font-size: 11.5px;
+    letter-spacing: .5px;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 800;
+  }
+  td{
+    padding: 14px 8px;
+    border-bottom: 1px solid #1a212b;
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  .placed-cell.correct{ color: var(--green); font-weight: 700;}
+  .placed-cell.wrong{ color: var(--red); font-weight: 700;}
+  .result-cell{
+    white-space: nowrap;
+    font-weight: 700;
+  }
+  .result-cell.correct{ color: var(--green); }
+  .result-cell.wrong{ color: var(--red); }
+  .again-row{
+    display:flex;
+    justify-content:flex-end;
+    margin-top: 20px;
+  }
+  .again-row button{
+    background: var(--accent);
+    color: #06201d;
+  }
+  .score-line{
+    color: var(--muted);
+    font-size: 13.5px;
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>L2 Last Game — اسحب وأفلت في المربعين</h1>
+
+  <div class="board">
+    <div class="hint"><b>تلميح</b> صنّف كل مخالفة في الفئة الصحيحة</div>
+
+    <div class="section-label">العناصر المطلوب ترتيبها</div>
+    <div id="pool"></div>
+
+    <div class="zones">
+      <div class="zone" data-zone="clarity" id="zone-clarity">
+        <h3>الوضوح (مصطلحات تقنية، خلط اللغات، مصطلح خاطئ)</h3>
+        <div class="zone-inner"></div>
+      </div>
+      <div class="zone" data-zone="professionalism" id="zone-professionalism">
+        <h3>الاحترافية (كلمة محظورة، إيجابية زائفة، إلقاء اللوم)</h3>
+        <div class="zone-inner"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="resetBtn">إعادة تعيين</button>
+      <button id="submitBtn" disabled>إرسال للمراجعة</button>
+    </div>
+
+    <div class="result-banner" id="resultBanner"></div>
+  </div>
+
+  <div class="review" id="reviewBox">
+    <h2>راجع إجاباتك</h2>
+    <div class="score-line" id="scoreLine"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>العنصر</th>
+          <th>تم وضعه في</th>
+          <th>النتيجة</th>
+        </tr>
+      </thead>
+      <tbody id="reviewBody"></tbody>
+    </table>
+    <div class="again-row">
+      <button id="playAgainBtn">إعادة اللعب</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const items = [
+  {
+    id: 1,
+    text: 'الدمج بين اللغة الإنجليزية والعربية دون أن يبدأ العميل بذلك',
+    correct: 'clarity'
+  },
+  {
+    id: 2,
+    text: 'استخدام كلمة "حبيبي" أو "عزيزي" مع العميل',
+    correct: 'professionalism'
+  },
+  {
+    id: 3,
+    text: 'استخدام "النظام الآلي" بدلاً من "عملية المراجعة"',
+    correct: 'professionalism'
+  },
+  {
+    id: 4,
+    text: 'كتابة "تمت تسوية المبلغ" بدلاً من "تم إتمام الدفع"',
+    correct: 'clarity'
+  },
+  {
+    id: 5,
+    text: 'هذا خطأ التاجر، وليس خطأنا',
+    correct: 'professionalism'
+  },
+  {
+    id: 6,
+    text: 'لا تقلق! كل شيء سيكون بخير 😊😊',
+    correct: 'professionalism'
+  }
+];
+
+const zoneNames = {
+  clarity: 'الوضوح (مصطلحات تقنية، خلط اللغات، مصطلح خاطئ)',
+  professionalism: 'الاحترافية (كلمة محظورة، إيجابية زائفة، إلقاء اللوم)'
+};
+
+const pool = document.getElementById('pool');
+const zones = document.querySelectorAll('.zone');
+const submitBtn = document.getElementById('submitBtn');
+const resetBtn = document.getElementById('resetBtn');
+const resultBanner = document.getElementById('resultBanner');
+const reviewBox = document.getElementById('reviewBox');
+const reviewBody = document.getElementById('reviewBody');
+const scoreLine = document.getElementById('scoreLine');
+const playAgainBtn = document.getElementById('playAgainBtn');
+
+let placements = {}; // itemId -> zone key
+let selectedItemId = null; // for click-to-place fallback
+
+function renderPool(){
+  pool.innerHTML = '';
+  items.forEach(it => {
+    if(placements[it.id]) return;
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.textContent = it.text;
+    el.draggable = true;
+    el.dataset.id = it.id;
+    el.addEventListener('dragstart', onDragStart);
+    el.addEventListener('dragend', onDragEnd);
+    el.addEventListener('click', onItemClick);
+    pool.appendChild(el);
+  });
+  checkSubmitEnabled();
+}
+
+function renderZones(){
+  zones.forEach(zone => {
+    const key = zone.dataset.zone;
+    const inner = zone.querySelector('.zone-inner');
+    inner.innerHTML = '';
+    const placedItems = items.filter(it => placements[it.id] === key);
+    if(placedItems.length === 0){
+      const msg = document.createElement('div');
+      msg.className = 'zone-empty-msg';
+      msg.textContent = 'أفلت العناصر هنا';
+      inner.appendChild(msg);
+    } else {
+      placedItems.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'dropped-item';
+        el.textContent = it.text;
+        el.draggable = true;
+        el.dataset.id = it.id;
+        el.addEventListener('dragstart', onDragStart);
+        el.addEventListener('dragend', onDragEnd);
+        el.addEventListener('click', () => {
+          delete placements[it.id];
+          renderPool();
+          renderZones();
+        });
+        inner.appendChild(el);
+      });
+    }
+  });
+}
+
+function onDragStart(e){
+  e.dataTransfer.setData('text/plain', e.target.dataset.id);
+  e.target.classList.add('dragging');
+}
+function onDragEnd(e){
+  e.target.classList.remove('dragging');
+}
+
+function onItemClick(e){
+  const id = e.currentTarget.dataset.id;
+  document.querySelectorAll('.item.selected').forEach(el => el.classList.remove('selected'));
+  if(selectedItemId === id){
+    selectedItemId = null;
+  } else {
+    selectedItemId = id;
+    e.currentTarget.classList.add('selected');
+  }
+}
+
+zones.forEach(zone => {
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    zone.classList.add('dragover');
+  });
+  zone.addEventListener('dragleave', () => {
+    zone.classList.remove('dragover');
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const id = e.dataTransfer.getData('text/plain');
+    if(!id) return;
+    placements[id] = zone.dataset.zone;
+    renderPool();
+    renderZones();
+  });
+  zone.addEventListener('click', () => {
+    if(selectedItemId){
+      placements[selectedItemId] = zone.dataset.zone;
+      selectedItemId = null;
+      renderPool();
+      renderZones();
+    }
+  });
+});
+
+function checkSubmitEnabled(){
+  const allPlaced = items.every(it => placements[it.id]);
+  submitBtn.disabled = !allPlaced;
+}
+
+submitBtn.addEventListener('click', () => {
+  let correctCount = 0;
+  reviewBody.innerHTML = '';
+  items.forEach(it => {
+    const placedZone = placements[it.id];
+    const isCorrect = placedZone === it.correct;
+    if(isCorrect) correctCount++;
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${it.text}</td>
+      <td class="placed-cell ${isCorrect ? 'correct' : 'wrong'}">${zoneNames[placedZone]}</td>
+      <td class="result-cell ${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? '✓ صحيح' : '✗ خطأ'}</td>
+    `;
+    reviewBody.appendChild(row);
+  });
+
+  const pct = Math.round((correctCount / items.length) * 100);
+  const passed = pct >= 80;
+
+  resultBanner.style.display = 'block';
+  resultBanner.className = 'result-banner ' + (passed ? 'pass' : 'fail');
+  resultBanner.textContent = passed
+    ? `أحسنت! أجبت بشكل صحيح على ${correctCount} من ${items.length} (${pct}٪).`
+    : `تحتاج إلى 80٪ على الأقل للنجاح. أجبت بشكل صحيح على ${correctCount} من ${items.length} (${pct}٪). واصل التدريب!`;
+
+  scoreLine.textContent = `النتيجة: ${correctCount} من ${items.length} صحيحة (${pct}٪)`;
+
+  reviewBox.style.display = 'block';
+  reviewBox.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+resetBtn.addEventListener('click', () => {
+  placements = {};
+  selectedItemId = null;
+  resultBanner.style.display = 'none';
+  reviewBox.style.display = 'none';
+  renderPool();
+  renderZones();
+});
+
+playAgainBtn.addEventListener('click', () => {
+  resetBtn.click();
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+renderPool();
+renderZones();
+</script>
+</body>
+</html>
